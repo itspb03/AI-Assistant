@@ -1,0 +1,365 @@
+:root {
+    /* Colors */
+    --bg-color: #0f172a;
+    --panel-bg: rgba(30, 41, 59, 0.7);
+    --panel-border: rgba(255, 255, 255, 0.1);
+    --primary: #f97316; /* Anthropic orange */
+    --primary-blur: rgba(249, 115, 22, 0.2);
+    --secondary: #6366f1;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent: #22d3ee;
+    
+    /* Spacing & Borders */
+    --radius-lg: 24px;
+    --radius-md: 12px;
+    --spacing: 20px;
+    
+    /* Globs */
+    --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --blur: blur(12px);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(249, 115, 22, 0.1) 0%, transparent 40%);
+}
+
+#app {
+    width: 96vw;
+    height: 88vh; /* Reduced height as requested */
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: var(--spacing);
+    padding: var(--spacing);
+    position: relative;
+}
+
+/* Glass Panels */
+.glass-panel {
+    background: var(--panel-bg);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+}
+
+.scrollable {
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.scrollable::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollable::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.scrollable::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+.scrollable::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
+/* Sidebar */
+.sidebar {
+    padding: var(--spacing);
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Fill the grid slot exactly */
+    overflow: hidden; /* Prevent the container itself from scrolling */
+}
+
+.project-nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Allow the nav to shrink below its content height */
+    margin-bottom: 20px;
+}
+
+#project-list {
+    flex: 1;
+    overflow-y: auto; /* Enable scrolling */
+    min-height: 0;
+}
+
+.sidebar-header h1 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 30px;
+}
+
+.sidebar-header h1 span {
+    color: var(--primary);
+}
+
+#btn-new-project {
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.project-item {
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.project-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.project-item.active {
+    background: rgba(255, 255, 255, 0.1);
+    border-left-color: var(--primary);
+}
+
+/* Main Content Area */
+.main-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+    min-width: 0;
+    height: 100%;
+    min-height: 0; /* Constraints flex chain */
+}
+
+/* Header Bar inside Chat/Main */
+.header-bar {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    max-height: 80px;
+}
+
+.project-info h2 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    margin-bottom: 2px;
+}
+
+.muted {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* Chat Panel */
+.chat-panel {
+    flex: 1;
+    overflow: hidden;
+    padding: 0;
+    height: 100%; /* Match sidebar height exactly */
+    min-height: 0; /* Important: allow flex child to shrink/not-expand beyond parent */
+}
+
+.chat-header {
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--panel-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-history {
+    flex-grow: 1; /* Take up all available space */
+    height: 0;    /* Force flex-grow to manage height strictly */
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.ai-bubble, .user-bubble {
+    padding: 12px 16px;
+    border-radius: 16px;
+    max-width: 85%;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.ai-bubble {
+    background: rgba(255, 255, 255, 0.05);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+
+.user-bubble {
+    background: var(--primary);
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-image-bubble {
+    width: 300px;
+    height: 220px; /* Strictly fixed size */
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--panel-border);
+    background: var(--panel-bg);
+    margin-bottom: 8px;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.chat-image-bubble.user { align-self: flex-end; }
+.chat-image-bubble.ai { align-self: flex-start; }
+
+.chat-image-bubble img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Fill the fixed container nicely */
+    display: block;
+    cursor: zoom-in;
+}
+
+.tool-badge {
+    display: inline-block;
+    font-size: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-top: 8px;
+    color: var(--accent);
+}
+
+.chat-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--panel-border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.1); /* Subtle dark base for the footer */
+}
+
+#chat-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-md);
+    color: white;
+    padding: 12px 16px;
+    resize: none;
+    font-family: inherit;
+    font-size: 14px;
+    max-height: 120px;
+}
+
+/* Form Helper Classes */
+.input-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Buttons */
+.btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: #ea580c; box-shadow: 0 0 15px var(--primary-blur); }
+
+.btn-icon {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    border: 1px solid var(--panel-border);
+    padding: 10px;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--text-main);
+}
+
+.circle { 
+    border-radius: 50%; 
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0; /* Prevent the circle from being squished */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Vision/Analysis UI */
+.vision-file-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--primary-blur);
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    font-size: 13px;
+    max-width: 200px;
+}
+
+/* Modals & Helpers */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal { width: 440px; padding: 32px; }
+.animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+@keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.hidden { display: none !important; }
+
+.tool-indicator { font-size: 12px; color: var(--accent); opacity: 0.8; }
+.status-badge { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.status-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #666; }

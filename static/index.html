@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Project Assistant</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Inter:wght@400;500;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="dark-theme">
+    <div id="app" class="glass-container">
+        <!-- Sidebar: Project Management -->
+        <aside class="sidebar glass-panel">
+            <header class="sidebar-header">
+                <h1>Projects<span>.</span></h1>
+            </header>
+
+            <nav class="project-nav">
+                <button id="btn-new-project" class="btn btn-primary">
+                    <span class="icon">+</span> New Project
+                </button>
+                <div id="project-list" class="scrollable">
+                    <!-- Projects will be injected here -->
+                    <div class="loading-spinner"></div>
+                </div>
+            </nav>
+
+            <footer class="sidebar-footer">
+                <div class="user-status">
+                    <div class="status-dot online"></div>
+                    <span>AI Assistant Online</span>
+                </div>
+            </footer>
+        </aside>
+
+        <!-- Main Area: Chat Assistant -->
+        <div class="main-content">
+            <!-- Project Header (Dynamic) -->
+            <header id="project-header" class="header-bar glass-panel hidden animate-pop">
+                <div class="project-info">
+                    <h2 id="active-project-name">...</h2>
+                    <p id="active-project-desc" class="muted">...</p>
+                </div>
+                <div class="header-actions">
+                    <span id="agent-status" class="status-badge hidden">
+                        <span class="dot"></span>
+                        <span class="label">Idle</span>
+                    </span>
+                </div>
+            </header>
+
+            <!-- Chat Panel -->
+            <section id="chat-panel" class="chat-panel glass-panel">
+                <header class="chat-header">
+                    <h3>Claude Assistant</h3>
+                    <div class="chat-actions">
+                        <span id="tool-indicator" class="tool-indicator hidden">Claude is thinking...</span>
+                    </div>
+                </header>
+
+                <div id="chat-history" class="chat-history scrollable">
+                    <div class="ai-bubble">
+                        Hello! Select a project to start planning. I'm ready to help you with research, image
+                        generation, and memory organization.
+                    </div>
+                </div>
+
+                <footer class="chat-footer">
+                    <div class="input-actions">
+                        <input type="file" id="file-upload" class="hidden" accept="image/*">
+                        <button id="btn-upload" class="btn-icon circle" title="Analyze Image (Gemini)">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <textarea id="chat-input" placeholder="Ask Claude anything..." rows="1"></textarea>
+                    <button id="btn-send" class="btn-icon circle" title="Send (Enter)">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7 6l10 6-10 6V6z" />
+                        </svg>
+                    </button>
+                </footer>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-container" class="modal-overlay hidden">
+        <div class="modal glass-panel animate-pop">
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>

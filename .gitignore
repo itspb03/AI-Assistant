@@ -1,0 +1,30 @@
+# ── Python ──────────────────────────────────────────────────────────
+# Ignore compiled bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore virtual environments
+.venv/
+env/
+venv/
+ENV/
+
+# ── Environment ────────────────────────────────────────────────────
+# NEVER commit your real .env file!
+.env
+
+# ── Local Development ──────────────────────────────────────────────
+# Ignore project-specific persistent memory (synced to Supabase)
+memory_store/
+
+# Ignore IDE-specific folders
+.vscode/
+.idea/
+.DS_Store
+
+# ── Testing ────────────────────────────────────────────────────────
+# Ignore coverage and test cache
+.pytest_cache/
+.coverage
+htmlcov/
