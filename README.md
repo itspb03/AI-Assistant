@@ -4,6 +4,15 @@ A robust backend-first AI assistant designed to manage projects using Claude (fo
 
 ---
 
+## Technology Stack
+- **Backend Framework**: FastAPI (Python 3.12+)
+- **Frontend**: Vanilla JavaScript (ES6+), HTML5, CSS3 (Glassmorphism)
+- **Database**: Supabase (PostgreSQL)
+- **AI Models**: Anthropic Claude & Google Gemini Flash
+- **Memory**: Local File System + Database (Dual-Writer)
+
+---
+
 ##  Quick Start
 
 Get the assistant running locally:
@@ -11,7 +20,7 @@ Get the assistant running locally:
 1. **Setup**: `python -m venv .venv` and `pip install -r requirements.txt`.
 2. **Environment**: Copy `.env.example` to `.env` and add your keys.
 3. **Database**: The assistant **automatically syncs** your schema on startup using the `DATABASE_URL`.
-4. **Launch**: `uvicorn app.main:app --reload`.
+4. **Launch**: `uvicorn app.main:app --reload --port 8000`.
 *The UI is available at [http://localhost:8000](http://localhost:8000)*
 
 ---
@@ -110,7 +119,7 @@ The **Organizer Agent** is a "single-pass" specialist.
 
 ---
 
-## 📡 API Endpoints (Core)
+##  API Endpoints (Core)
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
@@ -121,7 +130,7 @@ The **Organizer Agent** is a "single-pass" specialist.
 
 ---
 
-## 📬 Sample API Interaction
+##  Sample API Interaction
 
 ### 1. Create a Project
 `POST /projects`
@@ -161,7 +170,7 @@ The **Organizer Agent** is a "single-pass" specialist.
 
 ---
 
-## 🧪 Testing
+##  Testing
 Run backend validation via Pytest:
 ```bash
 pytest tests/ -v
@@ -169,36 +178,18 @@ pytest tests/ -v
 
 ---
 
-## 🧠 Assumptions & Tradeoffs
+##  Assumptions & Tradeoffs
 - **Automated Schema Sync**: On every startup, the app executes all `sql/` files. This ensures your project structure is always "self-healing."
 - **Security-First Storage**: The system uses a **Private Bucket** for images. Access is restricted to the backend via the **Service Role Key**.
 - **No-Auth Pattern**: Designed as a project-internal tool; assumes auth is handled by a reverse proxy.
 
 ---
 
-## 🛠️ Limitations & Future Improvements
-
-While this version is a fully functional AI assistant, the following features would be added for a production-ready rollout:
-
-- **Identity & Access Management (IAM)**: Full user authentication (OAuth2/Supabase Auth) with per-user project scoping.
-- **Background Task Queues**: Moving long-running Agent Runs and image generation to a worker (e.g., Celery or Redis) to free up the API workers.
-- **Advanced Retries**: Implementing exponential backoff for LLM API calls to handle rate limits and transient failures gracefully.
-- **Enhanced Observability**: Integrating structured logging (ELK) and tracing (OpenTelemetry) to monitor complex multi-agent reasoning loops.
-- **Cypress/Playwright Tests**: Adding end-to-end browser tests to automate UI validation across all features.
-
----
-
-## 💰 Cost Optimizations
+##  Cost Optimizations
 - **Model Tiering**: Claude 3.5 Sonnet for reasoning, Haiku for organization.
 - **Prompt Caching**: Uses `cache_control` on large context blocks to reduce repetitive costs.
 - **Gemini Flash**: Efficient vision processing at scale.
 - **Mock Mode**: Prevents cost spikes during frontend development.
 
----
 
-## Technology Stack
-- **Backend Framework**: FastAPI (Python 3.12+)
-- **Frontend**: Vanilla JavaScript (ES6+), HTML5, CSS3 (Glassmorphism)
-- **Database**: Supabase (PostgreSQL)
-- **AI Models**: Anthropic Claude & Google Gemini Flash
-- **Memory**: Local File System + Database (Dual-Writer)
+
