@@ -4,14 +4,16 @@ A chat-first, multi-LLM manager powering real-time project brainstorming and mem
 
 ---
 
-##  Quick Start
+## Quick Start
 
 Get the assistant running locally:
 
-1. **Setup**: `python -m venv .venv` and `pip install -r requirements.txt`.
-2. **Environment**: Copy `.env.example` to `.env` and add your API keys.
-3. **Database**: The assistant **automatically syncs** your schema on startup using the `DATABASE_URL`.
-4. **Launch**: `uvicorn app.main:app --reload --port 8000`.
+1. **Clone**: `git clone https://github.com/itspb03/AI-Assistant` and `cd AI-Assistant`.
+2. **Setup**: Create a virtual environment (`python -m venv .venv`), activate it, and run `pip install -r requirements.txt`.
+3. **Environment**: Copy `.env.example` to `.env` and add your API keys.
+4. **Database**: The assistant **automatically syncs** your schema on startup using the `DATABASE_URL`.
+5. **Launch**: `uvicorn app.main:app --reload --port 8000`.
+
 *The UI is available at [http://localhost:8000](http://localhost:8000)*
 
 ---
