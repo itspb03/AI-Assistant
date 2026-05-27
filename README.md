@@ -1,6 +1,7 @@
-# AI Project Assistant
+# AI Project Assistant 
 
 A chat-first, multi-LLM manager powering real-time project brainstorming and memory structuring. Utilizes Groq's Llama models for complex reasoning loops, Google Gemini for vision capabilities, and a Postgres/local-file hybrid memory to retain project context across sessions.
+
 ---
 
 ##  Quick Start
