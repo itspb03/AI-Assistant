@@ -5,6 +5,8 @@ const State = {
     projects: [],
     activeProject: null,
     conversationId: null,
+    generalChatHistory: [],
+    selectedImageFile: null,
 };
 
 // DOM Elements
@@ -22,12 +24,35 @@ const El = {
     toolIndicator: document.getElementById('tool-indicator'),
     modalContainer: document.getElementById('modal-container'),
     modalContent: document.getElementById('modal-content'),
+    btnEditDesc: document.getElementById('btn-edit-desc'),
+    btnDeleteProject: document.getElementById('btn-delete-project'),
+    btnOrganizeMemory: document.getElementById('btn-organize-memory'),
+    btnGeneralChat: document.getElementById('btn-general-chat'),
+    imagePreviewContainer: document.getElementById('image-preview-container'),
+    imagePreviewThumbnail: document.getElementById('image-preview-thumbnail'),
+    imagePreviewFilename: document.getElementById('image-preview-filename'),
+    btnRemoveImage: document.getElementById('btn-remove-image'),
 };
 
 /**
  * Initialize App
  */
 async function init() {
+    // Dynamic sidebar status dot based on active API network requests
+    API.onStatusChange = isBusy => {
+        const dot = document.getElementById('sidebar-status-dot');
+        const text = document.getElementById('sidebar-status-text');
+        if (!dot || !text) return;
+        
+        if (isBusy) {
+            dot.className = 'status-dot offline'; // Turns red pulsing
+            text.innerText = '🔴 Generating Response...';
+        } else {
+            dot.className = 'status-dot online'; // Turns green glowing
+            text.innerText = '🟢 Ready to Help';
+        }
+    };
+
     setupEventListeners();
     await loadProjects();
 }
@@ -70,9 +95,40 @@ async function selectProject(id) {
     El.projectDesc.innerText = project.description || 'No description provided.';
     El.projectHeader.classList.remove('hidden');
 
-    // Reset Chat
-    El.chatHistory.innerHTML = '';
-    appendMessage('ai', `Switched to project: ${project.name}. I've loaded the project context. How can I assist you?`);
+    // Reset Chat & Load History
+    El.chatHistory.innerHTML = '<div class="loading-spinner" style="margin: 20px auto;"></div>';
+    
+    try {
+        const conversations = await API.getConversations(project.id);
+        if (conversations && conversations.length > 0) {
+            // Sort by created_at desc (most recent first) to get latest conversation
+            conversations.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            State.conversationId = conversations[0].id;
+            
+            const messages = await API.getMessages(project.id, State.conversationId);
+            El.chatHistory.innerHTML = '';
+            
+            if (messages && messages.length > 0) {
+                // Filter and append user and assistant messages
+                messages.forEach(msg => {
+                    if (msg.role === 'user') {
+                        appendMessage('user', msg.content);
+                    } else if (msg.role === 'assistant') {
+                        appendMessage('ai', msg.content);
+                    }
+                });
+            } else {
+                appendMessage('ai', "How can I assist you?");
+            }
+        } else {
+            El.chatHistory.innerHTML = '';
+            appendMessage('ai', "How can I assist you?");
+        }
+    } catch (err) {
+        console.error('Failed to load chat history:', err);
+        El.chatHistory.innerHTML = '';
+        appendMessage('ai', "How can I assist you?");
+    }
 }
 
 /**
@@ -80,7 +136,84 @@ async function selectProject(id) {
  */
 async function sendChat() {
     const text = El.chatInput.value.trim();
-    if (!text || !State.activeProject) return;
+    const hasImage = !!State.selectedImageFile;
+
+    if (!text && !hasImage) return;
+
+    // --- Scenario A: Sending an Image with or without a custom prompt ---
+    if (hasImage) {
+        const file = State.selectedImageFile;
+        removeSelectedImage();
+        El.chatInput.value = '';
+
+        // 1. Show user inputs (image thumbnail + prompt text if any)
+        const localPreviewUrl = URL.createObjectURL(file);
+        appendImageMessage('user', localPreviewUrl);
+        if (text) {
+            appendMessage('user', text);
+        }
+
+        El.toolIndicator.classList.remove('hidden');
+        appendMessage('ai', 'Analyzing your image...');
+
+        // Branch by Active Project vs General Assistant
+        if (State.activeProject) {
+            try {
+                // Project upload
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const uploadRes = await fetch(`/projects/${State.activeProject.id}/images/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!uploadRes.ok) throw new Error('Upload failed');
+                const imageData = await uploadRes.json();
+
+                // Gemini Project Analysis with custom prompt
+                const analysis = await API.analyzeImage(State.activeProject.id, imageData.id, text || null);
+                appendMessage('ai', `**Analysis Summary:**\n${analysis.analysis}`);
+            } catch (err) {
+                appendMessage('ai', 'Vision Analysis Error: ' + err.message);
+            } finally {
+                El.toolIndicator.classList.add('hidden');
+            }
+        } else {
+            // General Chat stateless upload + analysis
+            try {
+                const res = await API.generalAnalyzeImage(file, text || null);
+                appendMessage('ai', `**Analysis Summary:**\n${res.analysis}`);
+            } catch (err) {
+                appendMessage('ai', 'Vision Analysis Error: ' + err.message);
+            } finally {
+                El.toolIndicator.classList.add('hidden');
+            }
+        }
+        return;
+    }
+
+    // --- Scenario B: Normal Text Message ---
+    if (!State.activeProject) {
+        appendMessage('user', text);
+        El.chatInput.value = '';
+        El.toolIndicator.classList.remove('hidden');
+        
+        try {
+            const history = State.generalChatHistory || [];
+            const res = await API.generalChat(text, history);
+            
+            history.push({ role: 'user', content: text });
+            history.push({ role: 'assistant', content: res.assistant_message });
+            State.generalChatHistory = history;
+            
+            appendMessage('ai', res.assistant_message);
+        } catch (err) {
+            appendMessage('ai', 'Error: ' + err.message);
+        } finally {
+            El.toolIndicator.classList.add('hidden');
+        }
+        return;
+    }
 
     El.chatInput.value = '';
     appendMessage('user', text);
@@ -113,40 +246,25 @@ async function sendChat() {
 /**
  * Inline Vision: Upload & Analyze
  */
-async function handleFileUpload(e) {
+function handleFileSelection(e) {
     const file = e.target.files[0];
-    if (!file || !State.activeProject) return;
+    if (!file) return;
 
-    // Fast local preview
+    State.selectedImageFile = file;
+
     const previewUrl = URL.createObjectURL(file);
-    appendImageMessage('user', previewUrl);
+    El.imagePreviewThumbnail.src = previewUrl;
+    El.imagePreviewFilename.innerText = file.name;
+    El.imagePreviewContainer.classList.remove('hidden');
     
-    appendMessage('ai', 'Uploading and analyzing your image with Gemini Vision...');
-    
-    try {
-        // 1. Upload to Supabase Storage
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        const uploadRes = await fetch(`/projects/${State.activeProject.id}/images/upload`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!uploadRes.ok) throw new Error('Upload failed');
-        const imageData = await uploadRes.json();
-        
-        // 2. Trigger Gemini Analysis
-        const analysis = await API.analyzeImage(State.activeProject.id, imageData.id);
-        
-        // 3. Show result
-        appendMessage('ai', `**Analysis Summary:**\n${analysis.analysis_description}`);
-        
-    } catch (err) {
-        appendMessage('ai', 'Vision Analysis Error: ' + err.message);
-    } finally {
-        El.fileInput.value = ''; // Reset input
-    }
+    El.fileInput.value = ''; // Reset file input
+}
+
+function removeSelectedImage() {
+    State.selectedImageFile = null;
+    El.imagePreviewContainer.classList.add('hidden');
+    El.imagePreviewThumbnail.src = '';
+    El.imagePreviewFilename.innerText = '';
 }
 
 function appendMessage(role, text) {
@@ -203,12 +321,151 @@ function setupEventListeners() {
     };
     
     El.btnUpload.onclick = () => El.fileInput.click();
-    El.fileInput.onchange = handleFileUpload;
+    El.fileInput.onchange = handleFileSelection;
+    El.btnRemoveImage.onclick = removeSelectedImage;
     
     El.btnNewProject.onclick = showNewProjectModal;
+    El.btnEditDesc.onclick = editProjectDescription;
+    El.btnDeleteProject.onclick = deleteProjectAction;
+    El.btnOrganizeMemory.onclick = organizeMemoryAction;
+    El.btnGeneralChat.onclick = switchToGeneralChat;
     El.modalContainer.onclick = e => {
         if (e.target === El.modalContainer) hideModal();
     };
+}
+
+/**
+ * Switch back to General Chat session
+ */
+function switchToGeneralChat() {
+    State.activeProject = null;
+    State.conversationId = null;
+    
+    renderProjectList();
+    El.projectHeader.classList.add('hidden');
+    
+    El.chatHistory.innerHTML = '';
+    
+    const history = State.generalChatHistory || [];
+    if (history.length > 0) {
+        history.forEach(msg => {
+            if (msg.role === 'user') {
+                appendMessage('user', msg.content);
+            } else if (msg.role === 'assistant') {
+                appendMessage('ai', msg.content);
+            }
+        });
+    } else {
+        appendMessage('ai', "Hello! How can I help you today ? Ask me anything or create a project to get started. I'm ready to help you with research, brain storming and project organization.");
+    }
+}
+
+/**
+ * Edit Project Description Action
+ */
+async function editProjectDescription() {
+    if (!State.activeProject) return;
+    const newDesc = prompt("Enter new project description:", State.activeProject.description || "");
+    if (newDesc === null) return; // Cancelled
+    
+    try {
+        const updated = await API.updateProject(State.activeProject.id, { description: newDesc.trim() });
+        State.activeProject.description = updated.description;
+        El.projectDesc.innerText = updated.description || 'No description provided.';
+        
+        // Update the description in sidebar list
+        const pIdx = State.projects.findIndex(p => p.id === State.activeProject.id);
+        if (pIdx !== -1) {
+            State.projects[pIdx].description = updated.description;
+            renderProjectList();
+        }
+    } catch (err) {
+        alert("Failed to update description: " + err.message);
+    }
+}
+
+/**
+ * Delete Project Action
+ */
+async function deleteProjectAction() {
+    if (!State.activeProject) return;
+    
+    const confirmDelete = confirm(`Are you absolutely sure you want to delete the project "${State.activeProject.name}"?\n\nThis will permanently delete the project and all its related records (conversation history, brief, images, agent runs, memories) from database. This action cannot be undone.`);
+    if (!confirmDelete) return;
+
+    try {
+        await API.deleteProject(State.activeProject.id);
+        
+        // Remove from local projects list
+        State.projects = State.projects.filter(p => p.id !== State.activeProject.id);
+        State.activeProject = null;
+        State.conversationId = null;
+        
+        // Update UI
+        renderProjectList();
+        El.projectHeader.classList.add('hidden');
+        
+        // Reset chat history to welcome message
+        El.chatHistory.innerHTML = `
+            <div class="ai-bubble">
+                Hello! How can I help you today ? Ask me anything or create a project to get started. I'm ready to help you with research, brain storming and project organization.
+            </div>
+        `;
+        
+        alert("Project successfully deleted.");
+    } catch (err) {
+        alert("Failed to delete project: " + err.message);
+    }
+}
+
+/**
+ * Organize Project Memory Action
+ */
+async function organizeMemoryAction() {
+    if (!State.activeProject) return;
+    
+    const originalText = El.btnOrganizeMemory.innerHTML;
+    El.btnOrganizeMemory.disabled = true;
+    El.btnOrganizeMemory.innerHTML = `<span>🧠</span> Triggering...`;
+    
+    try {
+        // 1. Trigger the background agent
+        const run = await API.triggerAgentRun(State.activeProject.id);
+        const runId = run.id;
+        
+        // 2. Start polling status
+        El.btnOrganizeMemory.innerHTML = `<span>🧠</span> Pending...`;
+        
+        const pollInterval = setInterval(async () => {
+            try {
+                const runStatus = await API.getAgentRun(State.activeProject.id, runId);
+                const status = runStatus.status.toLowerCase();
+                
+                if (status === 'running') {
+                    El.btnOrganizeMemory.innerHTML = `<span>🧠</span> Organizing...`;
+                } else if (status === 'completed') {
+                    clearInterval(pollInterval);
+                    El.btnOrganizeMemory.disabled = false;
+                    El.btnOrganizeMemory.innerHTML = originalText;
+                    
+                    // Show a message in the chat history explaining the success
+                    appendMessage('ai', '🧠 **Memory Sync Completed:** I have successfully analyzed the project history and organized your planning criteria, entities, constraints, and approach into durable memory files!');
+                } else if (status === 'failed') {
+                    clearInterval(pollInterval);
+                    El.btnOrganizeMemory.disabled = false;
+                    El.btnOrganizeMemory.innerHTML = originalText;
+                    alert("Memory organization agent failed: " + (runStatus.error || "Unknown error"));
+                }
+            } catch (pollErr) {
+                console.error("Error polling agent run status:", pollErr);
+            }
+        }, 1500);
+        
+    } catch (err) {
+        El.btnOrganizeMemory.disabled = false;
+        El.btnOrganizeMemory.innerHTML = originalText;
+        alert("Failed to start memory organization: " + err.message);
+    }
 }
 
 /**

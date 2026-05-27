@@ -35,14 +35,18 @@ async def get_image(
     return await svc.get(project_id, image_id)
 
 
+from app.schemas.image import ImageGenerateRequest, ImageOut, ImageAnalyzeRequest
+
 @router.post("/{image_id}/analyze", response_model=ImageOut)
 async def analyze_image(
     project_id: UUID,
     image_id: UUID,
+    body: ImageAnalyzeRequest | None = None,
     svc: ImageService = Depends(get_image_service),
 ):
-    """Run Gemini Vision analysis on a project image."""
-    return await svc.analyze(project_id, image_id)
+    """Run Gemini Vision analysis on a project image with optional custom prompt."""
+    prompt = body.prompt if body else None
+    return await svc.analyze(project_id, image_id, prompt)
 
 
 @router.post(

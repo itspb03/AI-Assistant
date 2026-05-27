@@ -6,10 +6,6 @@ from app.config import get_settings
 
 
 class ImageGeneratorProvider(ABC):
-    """
-    Abstract base — swap implementations via IMAGE_PROVIDER env var.
-    All providers must return a publicly accessible URL or local path.
-    """
 
     @property
     @abstractmethod
@@ -19,12 +15,10 @@ class ImageGeneratorProvider(ABC):
     async def generate(self, prompt: str) -> str: ...
 
 
-# ─────────────────────────────────────────────
 class MockImageProvider(ImageGeneratorProvider):
     """
     Returns a deterministic placeholder URL.
-    No API calls — safe for local dev and tests.
-    Images are saved as empty placeholder files under memory_store/images/.
+    No API calls — safe for local tests.
     """
 
     provider_name = "mock"
@@ -37,12 +31,7 @@ class MockImageProvider(ImageGeneratorProvider):
         return f"https://picsum.photos/seed/{seed}/{width}/{height}"
 
 
-# ─────────────────────────────────────────────
 class DalleImageProvider(ImageGeneratorProvider):
-    """
-    Calls OpenAI DALL-E 3.
-    Requires OPENAI_API_KEY and IMAGE_PROVIDER=dalle.
-    """
 
     provider_name = "dalle"
 
@@ -59,7 +48,7 @@ class DalleImageProvider(ImageGeneratorProvider):
         return response.data[0].url
 
 
-# ─────────────────────────────────────────────
+
 def get_image_provider() -> ImageGeneratorProvider:
     """
     Factory — reads IMAGE_PROVIDER from settings.
@@ -68,4 +57,4 @@ def get_image_provider() -> ImageGeneratorProvider:
     provider = get_settings().image_provider.lower()
     if provider == "dalle":
         return DalleImageProvider()
-    return MockImageProvider()   # default fallback
+    return MockImageProvider()   

@@ -3,7 +3,7 @@ from fastapi import HTTPException, status
 
 from app.repositories.memory_repo import MemoryRepo
 from app.repositories.project_repo import ProjectRepo
-from app.ai.claude.memory_adapter import MemoryAdapter
+from app.services.memory_adapter import MemoryAdapter
 from app.schemas.memory import MemoryEntryOut, MemorySnapshot, MemoryCategory
 
 
@@ -49,10 +49,10 @@ class MemoryService:
         key: str,
         summary: str,
         detail: dict | None = None,
-        source: str = "claude",
+        source: str = "llm",
     ) -> MemoryEntryOut:
         """
-        Called by the Claude tool handler when Claude invokes update_memory.
+        Called by the LLM tool handler when the LLM invokes update_memory.
         Writes to both the file adapter and the DB index.
         """
         await self._assert_project_exists(project_id)
@@ -60,7 +60,7 @@ class MemoryService:
         # Write to file store (source of truth)
         await self.adapter.write(project_id, category, key, summary, detail or {})
 
-        # Update DB manifest
+        # Update DB 
         row = await self.memory_repo.upsert(
             project_id=project_id,
             category=category,
@@ -74,7 +74,7 @@ class MemoryService:
     async def load_for_prompt(self, project_id: UUID) -> dict:
         """
         Called by the orchestrator before every chat turn.
-        Returns a clean dict suitable for injection into Claude's system prompt.
+        Returns a clean dict suitable for injection into the LLM's system prompt.
         Uses file adapter — returns richer structured data than the DB summary.
         """
         return await self.adapter.read(project_id)

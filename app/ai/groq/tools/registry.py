@@ -1,6 +1,6 @@
 # Tool definitions only — no execution logic here.
-# These JSON schemas are sent to Claude on every chat turn.
-# Claude decides which tools to call based on user intent.
+# These JSON schemas are sent to the LLM on every chat turn.
+# The LLM decides which tools to call based on user intent.
 
 TOOL_REGISTRY: list[dict] = [
     {

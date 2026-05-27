@@ -17,7 +17,7 @@ class ChatResponse(BaseModel):
     assistant_message: str
     tool_calls_made: list[str] = Field(
         default_factory=list,
-        description="Names of tools Claude invoked during this turn."
+        description="Names of tools the LLM invoked during this turn."
     )
     images: list[dict] = Field(
         default_factory=list,

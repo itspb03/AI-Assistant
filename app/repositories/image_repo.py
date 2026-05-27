@@ -59,7 +59,7 @@ class ImageRepo(BaseRepository):
         )
         return res.data[0]
 
-    # ─── Upload endpoint ──────────────────────────────────────────────────────
+    # Upload endpoint 
 
     async def upload_project_image(
         self,
@@ -68,14 +68,9 @@ class ImageRepo(BaseRepository):
         original_filename: str,
         content_type: str,
     ) -> dict:
-        """
-        1. Upload *file_bytes* to the `project-images` Storage bucket.
-        2. Retrieve the public URL.
-        3. Insert a row into the `project_images` table.
-        Returns the newly inserted row as a dict.
-        """
-        # Build a collision-free storage path: <project_id>/<uuid><ext>
-        ext = Path(original_filename).suffix  # e.g. ".jpg"
+        
+        # Build a collision-free storage path: 
+        ext = Path(original_filename).suffix  
         storage_path = f"{project_id}/{uuid4()}{ext}"
 
         # 1. Upload to Storage (async Supabase v2)
@@ -100,9 +95,9 @@ class ImageRepo(BaseRepository):
             .insert({
                 "project_id": str(project_id),
                 "url": image_url,
-                "provider": "upload",  # add 'upload' to the CHECK constraint — see note
-                "prompt": None,        # no prompt for file uploads
+                "provider": "upload",  
+                "prompt": None,        
             })
             .execute()
         )
-        return res.data[0]
+        return res.data[0]

@@ -26,7 +26,7 @@ class ProjectToolHandlers:
         row = await self.brief_repo.get_by_project(project_id)
         if not row:
             return {"error": "No brief found for this project."}
-        # Remove internal DB fields before returning to Claude
+        # Remove internal DB fields before returning to LLM
         row.pop("id", None)
         row.pop("project_id", None)
         return row

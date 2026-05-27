@@ -10,11 +10,15 @@ class ImageProvider(str, Enum):
     dalle = "dalle"
     stability = "stability"
     replicate = "replicate"
-    upload = "upload"         # user-uploaded files via POST /upload
+    upload = "upload"         
 
 
 class ImageGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=2000)
+
+
+class ImageAnalyzeRequest(BaseModel):
+    prompt: Optional[str] = Field(None, max_length=2000)
 
 
 class ImageOut(BaseModel):

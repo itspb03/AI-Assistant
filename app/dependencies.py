@@ -11,7 +11,7 @@ from fastapi import Depends
 from app.config import get_settings
 from app.db.client import get_supabase
 
-# ── Repositories ───────────────────────────────────────────────────────────
+# Repositories 
 from app.repositories.project_repo import ProjectRepo
 from app.repositories.brief_repo import BriefRepo
 from app.repositories.conversation_repo import ConversationRepo
@@ -20,17 +20,17 @@ from app.repositories.image_repo import ImageRepo
 from app.repositories.memory_repo import MemoryRepo
 from app.repositories.agent_run_repo import AgentRunRepo
 
-# ── AI Layer ───────────────────────────────────────────────────────────────
-from app.ai.claude.client import ClaudeClient
-from app.ai.claude.memory_adapter import MemoryAdapter
-from app.ai.claude.tools.handlers.project_tools import ProjectToolHandlers
-from app.ai.claude.tools.handlers.memory_tools import MemoryToolHandlers
-from app.ai.claude.tools.executor import ToolExecutor
-from app.ai.claude.orchestrator import ChatOrchestrator
+# AI Layer
+from app.ai.groq.client import GroqClient
+from app.services.memory_adapter import MemoryAdapter
+from app.ai.groq.tools.handlers.project_tools import ProjectToolHandlers
+from app.ai.groq.tools.handlers.memory_tools import MemoryToolHandlers
+from app.ai.groq.tools.executor import ToolExecutor
+from app.ai.groq.orchestrator import ChatOrchestrator
 from app.ai.gemini.image_analyzer import GeminiImageAnalyzer
 from app.ai.providers.image_generator import get_image_provider
 
-# ── Services ───────────────────────────────────────────────────────────────
+# Services 
 from app.services.project_service import ProjectService
 from app.services.brief_service import BriefService
 from app.services.image_service import ImageService
@@ -38,22 +38,19 @@ from app.services.memory_service import MemoryService
 from app.services.conversation_service import ConversationService
 from app.services.agent_run_service import AgentRunService
 
-# ── Agents ─────────────────────────────────────────────────────────────────
+# Agents 
 from app.agents.organizer_agent import OrganizerAgent
 
 
-# ── Singletons (created once per process) ─────────────────────────────────
-# These are stateless or hold only config — safe to cache.
+@lru_cache
+def _groq_client() -> GroqClient:
+    """Llama 70B tool-use — user-facing chat (quality matters)."""
+    return GroqClient(model=get_settings().groq_chat_model)
 
 @lru_cache
-def _claude_client() -> ClaudeClient:
-    """Sonnet — user-facing chat (quality matters)."""
-    return ClaudeClient(model=get_settings().claude_chat_model)
-
-@lru_cache
-def _claude_agent_client() -> ClaudeClient:
-    """Haiku — background agent (speed + cost efficiency)."""
-    return ClaudeClient(model=get_settings().claude_agent_model)
+def _groq_agent_client() -> GroqClient:
+    """Llama 70B versatile — background agent (speed + cost efficiency)."""
+    return GroqClient(model=get_settings().groq_agent_model)
 
 @lru_cache
 def _memory_adapter() -> MemoryAdapter:
@@ -68,9 +65,6 @@ def _image_provider():
     return get_image_provider()
 
 
-# ── Repository factories ───────────────────────────────────────────────────
-# Repos are lightweight — new instance per request is fine.
-# Supabase client inside is cached via its own lru_cache.
 
 async def get_project_repo() -> ProjectRepo:
     return ProjectRepo(client=await get_supabase())
@@ -94,7 +88,7 @@ async def get_agent_run_repo() -> AgentRunRepo:
     return AgentRunRepo(client=await get_supabase())
 
 
-# ── Service factories ──────────────────────────────────────────────────────
+# Service factories 
 
 def get_project_service(
     repo: ProjectRepo = Depends(get_project_repo),
@@ -171,7 +165,7 @@ def get_orchestrator(
     memory_service: MemoryService = Depends(get_memory_service),
 ) -> ChatOrchestrator:
     return ChatOrchestrator(
-        claude=_claude_client(),
+        llm=_groq_client(),
         executor=executor,
         conversation_repo=conversation_repo,
         message_repo=message_repo,
@@ -186,7 +180,7 @@ def get_organizer_agent(
     memory_repo: MemoryRepo = Depends(get_memory_repo),
 ) -> OrganizerAgent:
     return OrganizerAgent(
-        claude=_claude_agent_client(),
+        llm=_groq_agent_client(),
         run_repo=run_repo,
         brief_repo=brief_repo,
         message_repo=message_repo,

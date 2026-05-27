@@ -15,7 +15,7 @@ class MemoryCategory(str, Enum):
 class MemorySource(str, Enum):
     agent = "agent"
     user = "user"
-    claude = "claude"
+    llm = "llm"
 
 
 class MemoryEntryOut(BaseModel):
@@ -35,7 +35,7 @@ class MemoryEntryOut(BaseModel):
 class MemorySnapshot(BaseModel):
     """
     Full memory state for a project — returned by GET /memory.
-    Grouped by category for easy reading by Claude or humans.
+    Grouped by category for easy reading by the LLM or humans.
     """
     project_id: UUID
     context: list[MemoryEntryOut] = []

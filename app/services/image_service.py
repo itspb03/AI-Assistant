@@ -34,7 +34,7 @@ class ImageService:
         )
         return ImageOut(**row)
 
-    async def analyze(self, project_id: UUID, image_id: UUID) -> ImageOut:
+    async def analyze(self, project_id: UUID, image_id: UUID, prompt: str | None = None) -> ImageOut:
         row = await self.image_repo.get_by_id(image_id)
         if not row or str(row["project_id"]) != str(project_id):
             raise HTTPException(
@@ -42,13 +42,13 @@ class ImageService:
                 detail=f"Image {image_id} not found in project {project_id}.",
             )
 
-        # If already analyzed, return cached result
-        if row.get("analysis"):
+        # If already analyzed and no custom prompt provided, return cached result
+        if row.get("analysis") and not prompt:
             return ImageOut(**row)
 
         analysis = await self.analyzer.analyze(
             image_url=row["url"],
-            context=row.get("prompt"),
+            context=prompt or row.get("prompt"),
         )
         updated = await self.image_repo.update_analysis(image_id, analysis)
         return ImageOut(**updated)

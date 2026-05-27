@@ -1,17 +1,12 @@
 from uuid import UUID
-from app.ai.claude.tools.handlers.project_tools import ProjectToolHandlers
-from app.ai.claude.tools.handlers.memory_tools import MemoryToolHandlers
+from app.ai.groq.tools.handlers.project_tools import ProjectToolHandlers
+from app.ai.groq.tools.handlers.memory_tools import MemoryToolHandlers
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 class ToolExecutor:
-    """
-    Dispatches Claude tool_use requests to the correct handler.
-    New tools = add a handler method + register it in the dispatch map below.
-    No tool logic lives here — only routing.
-    """
 
     def __init__(
         self,

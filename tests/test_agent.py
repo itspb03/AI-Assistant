@@ -9,16 +9,17 @@ PROJECT_ID = UUID("00000000-0000-0000-0000-000000000001")
 RUN_ID     = UUID("00000000-0000-0000-0000-000000000099")
 
 
-def _make_agent(claude_response: str = None) -> OrganizerAgent:
+def _make_agent(llm_response: dict = None) -> OrganizerAgent:
     """Helper — builds OrganizerAgent with all dependencies mocked."""
 
-    claude = MagicMock()
-    claude.simple = AsyncMock(return_value=claude_response or json.dumps({
+    llm = MagicMock()
+    # simple_json returns parsed dict directly (not a string)
+    llm.simple_json = AsyncMock(return_value=llm_response or {
         "context":     [{"key": "project_type", "summary": "A REST API backend.", "detail": {}}],
         "decisions":   [{"key": "chosen_stack", "summary": "FastAPI + Supabase.", "detail": {}}],
-        "entities":    [{"key": "anthropic_claude", "summary": "LLM used for chat.", "detail": {}}],
+        "entities":    [{"key": "groq_llm", "summary": "LLM used for chat.", "detail": {}}],
         "constraints": [{"key": "free_tier", "summary": "Must run on free Supabase tier.", "detail": {}}],
-    }))
+    })
 
     run_repo = MagicMock()
     run_repo.set_running   = AsyncMock()
@@ -51,7 +52,7 @@ def _make_agent(claude_response: str = None) -> OrganizerAgent:
     memory_adapter.write = AsyncMock()
 
     return OrganizerAgent(
-        claude=claude,
+        llm=llm,
         run_repo=run_repo,
         brief_repo=brief_repo,
         message_repo=message_repo,
@@ -99,24 +100,28 @@ async def test_agent_output_contains_entry_counts():
 
 
 @pytest.mark.asyncio
-async def test_agent_marks_failed_on_claude_error():
+async def test_agent_marks_failed_on_llm_error():
     agent = _make_agent()
-    # Make Claude raise an exception
-    agent.claude.simple = AsyncMock(side_effect=Exception("Claude API timeout"))
+    # Make LLM raise an exception
+    agent.llm.simple_json = AsyncMock(side_effect=Exception("LLM API timeout"))
 
     with pytest.raises(Exception):
         await agent.run(run_id=RUN_ID, project_id=PROJECT_ID)
 
     agent.run_repo.set_failed.assert_called_once()
     call_args = agent.run_repo.set_failed.call_args
-    assert "Claude API timeout" in call_args.kwargs["error"]
+    assert "LLM API timeout" in call_args.kwargs["error"]
 
 
 @pytest.mark.asyncio
-async def test_agent_handles_invalid_json_from_claude():
-    agent = _make_agent(claude_response="This is not JSON at all.")
+async def test_agent_handles_invalid_json_from_llm():
+    """simple_json raises json.JSONDecodeError if Groq returns non-JSON."""
+    agent = _make_agent()
+    agent.llm.simple_json = AsyncMock(
+        side_effect=json.JSONDecodeError("Expecting value", "", 0)
+    )
 
-    with pytest.raises(ValueError, match="invalid JSON"):
+    with pytest.raises(json.JSONDecodeError):
         await agent.run(run_id=RUN_ID, project_id=PROJECT_ID)
 
     agent.run_repo.set_failed.assert_called_once()
@@ -125,13 +130,13 @@ async def test_agent_handles_invalid_json_from_claude():
 @pytest.mark.asyncio
 async def test_agent_skips_entries_with_missing_key_or_summary():
     """Entries with blank key or summary should be silently skipped."""
-    bad_response = json.dumps({
+    bad_response = {
         "context":     [{"key": "", "summary": "No key provided.", "detail": {}}],
         "decisions":   [{"key": "valid_key", "summary": "", "detail": {}}],
         "entities":    [],
         "constraints": [],
-    })
-    agent = _make_agent(claude_response=bad_response)
+    }
+    agent = _make_agent(llm_response=bad_response)
     await agent.run(run_id=RUN_ID, project_id=PROJECT_ID)
 
     # Both entries are invalid — nothing should be written

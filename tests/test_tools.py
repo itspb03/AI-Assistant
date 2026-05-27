@@ -2,8 +2,8 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
 
-from app.ai.claude.tools.handlers.project_tools import ProjectToolHandlers
-from app.ai.claude.tools.handlers.memory_tools import MemoryToolHandlers
+from app.ai.groq.tools.handlers.project_tools import ProjectToolHandlers
+from app.ai.groq.tools.handlers.memory_tools import MemoryToolHandlers
 
 PROJECT_ID = UUID("00000000-0000-0000-0000-000000000001")
 
@@ -36,7 +36,7 @@ async def test_get_project_brief_returns_brief():
 
     result = await handler.get_project_brief({}, project_id=PROJECT_ID)
 
-    # id and project_id should be stripped before returning to Claude
+    # id and project_id should be stripped before returning to LLM
     assert "id" not in result
     assert "project_id" not in result
     assert result["goals"] == "Build an AI assistant"
@@ -130,7 +130,7 @@ async def test_update_memory_saves_entry():
         category=MemoryCategory.decision,
         key="chosen_stack",
         summary="The team decided to use FastAPI and Supabase.",
-        source=MemorySource.claude,
+        source=MemorySource.llm,
         created_at=datetime.now(),
         updated_at=datetime.now(),
     ))
@@ -174,7 +174,7 @@ async def test_read_memory_returns_snapshot():
 
 @pytest.mark.asyncio
 async def test_executor_returns_error_for_unknown_tool():
-    from app.ai.claude.tools.executor import ToolExecutor
+    from app.ai.groq.tools.executor import ToolExecutor
 
     executor = ToolExecutor(
         project_handlers=MagicMock(),
@@ -193,7 +193,7 @@ async def test_executor_returns_error_for_unknown_tool():
 
 @pytest.mark.asyncio
 async def test_executor_dispatches_to_correct_handler():
-    from app.ai.claude.tools.executor import ToolExecutor
+    from app.ai.groq.tools.executor import ToolExecutor
 
     mock_handler = AsyncMock(return_value={"status": "ok"})
 

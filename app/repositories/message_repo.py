@@ -104,7 +104,7 @@ class MessageRepo(BaseRepository):
             await self.db.table(self.TABLE)
             .select("*")
             .eq("conversation_id", str(conversation_id))
-            .order("created_at", desc=True)   # newest first
+            .order("created_at", desc=True)   
             .limit(limit)
             .execute()
         )

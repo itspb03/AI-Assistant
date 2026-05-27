@@ -3,8 +3,8 @@ import json
 import logging
 from uuid import UUID
 
-from app.ai.claude.client import ClaudeClient
-from app.ai.claude.memory_adapter import MemoryAdapter
+from app.ai.groq.client import GroqClient
+from app.services.memory_adapter import MemoryAdapter
 from app.repositories.agent_run_repo import AgentRunRepo
 from app.repositories.brief_repo import BriefRepo
 from app.repositories.memory_repo import MemoryRepo
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class OrganizerAgent:
     """
-    A single-pass Claude call — NOT a tool loop.
+    A single-pass LLM call — NOT a tool loop.
 
     Triggered via POST /projects/{id}/agent-runs.
     Reads:  project brief + last 100 user/assistant messages + existing memory
@@ -23,10 +23,10 @@ class OrganizerAgent:
     Tracks: run status in agent_runs table (pending → running → completed/failed)
 
     Design note:
-    This agent uses a directed summarization call. Claude is given a strict
+    This agent uses a directed summarization call. The LLM is given a strict
     output schema (JSON) and asked to extract durable knowledge.
     We do not use the tool loop here because the task is fully defined upfront —
-    there is no need for Claude to decide what to do next.
+    there is no need for the LLM to decide what to do next.
     """
 
     SYSTEM_PROMPT = """You are a project memory organizer for an AI Project Assistant.
@@ -58,14 +58,14 @@ Output ONLY valid JSON in this exact format, no markdown, no explanation:
 
     def __init__(
         self,
-        claude: ClaudeClient,
+        llm: GroqClient,
         run_repo: AgentRunRepo,
         brief_repo: BriefRepo,
         message_repo: MessageRepo,
         memory_repo: MemoryRepo,
         memory_adapter: MemoryAdapter,
     ):
-        self.claude = claude
+        self.llm = llm
         self.run_repo = run_repo
         self.brief_repo = brief_repo
         self.message_repo = message_repo
@@ -87,9 +87,15 @@ Output ONLY valid JSON in this exact format, no markdown, no explanation:
             
             prompt = self._build_prompt(brief, messages, existing_memory)
 
-            
-            raw = await self.claude.simple(prompt)
-            structured = self._parse_output(raw)
+            # simple_json returns parsed dict directly — no json.loads needed
+            structured = await self.llm.simple_json(
+                prompt=prompt,
+                system=self.SYSTEM_PROMPT,
+            )
+
+            # Ensure all keys exist
+            for key in ["context", "decisions", "entities", "constraints"]:
+                structured.setdefault(key, [])
 
             
             counts = await self._write_memory(project_id, structured)
@@ -157,33 +163,6 @@ Output ONLY valid JSON in this exact format, no markdown, no explanation:
 
         return "\n".join(parts)
 
-
-    def _parse_output(self, raw: str) -> dict:
-        """
-        Parses Claude's JSON output with robust extraction.
-        Finds the first '{' and last '}' to strip any preamble or fences.
-        """
-        # Find the bounding braces for the JSON object
-        match = re.search(r"(\{.*\}|\[.*\])", raw, re.DOTALL)
-        if not match:
-            logger.error(f"No JSON block found in Claude output.\nRaw: {raw[:500]}")
-            raise ValueError("Claude did not return a valid JSON block.")
-
-        cleaned = match.group(0).strip()
-
-        try:
-            data = json.loads(cleaned)
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse organizer output: {e}\nCleaned: {cleaned[:300]}")
-            # Log the raw output too for full context
-            logger.debug(f"Full raw output: {raw}")
-            raise ValueError(f"Claude returned invalid JSON: {e}")
-
-        # Ensure all keys exist
-        for key in ["context", "decisions", "entities", "constraints"]:
-            data.setdefault(key, [])
-
-        return data
 
     async def _write_memory(
         self, project_id: UUID, structured: dict

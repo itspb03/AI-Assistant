@@ -14,7 +14,6 @@ class DatabaseMigrator:
 
     def __init__(self):
         self.settings = get_settings()
-        # Find the project root (/sql is at the root)
         self.sql_dir = Path(__file__).parent.parent.parent / "sql"
 
     async def run_migrations(self):
@@ -29,7 +28,7 @@ class DatabaseMigrator:
             logger.warning(f"SQL directory not found: {self.sql_dir}. Skipping migrations.")
             return
 
-        # 1. Gather and sort SQL files
+        #  Gather and sort SQL files
         sql_files = sorted([f for f in os.listdir(self.sql_dir) if f.endswith(".sql")])
         if not sql_files:
             logger.info("No SQL migration files found.")
@@ -37,7 +36,7 @@ class DatabaseMigrator:
 
         logger.info(f"Starting automated migrations (found {len(sql_files)} files)...")
 
-        # 2. Connect and execute
+        # Connect and execute
         conn = None
         try:
             conn = await asyncpg.connect(self.settings.database_url)
@@ -50,15 +49,13 @@ class DatabaseMigrator:
                     with open(file_path, "r", encoding="utf-8") as f:
                         sql_content = f.read()
                         
-                    # Execute the full SQL content of the file
-                    # We rely on IF NOT EXISTS inside the files for idempotency
                     await conn.execute(sql_content)
                     
             logger.info("All migrations applied successfully.")
             
         except Exception as e:
             logger.error(f"Migration failed at {filename if 'filename' in locals() else 'startup'}: {e}")
-            # We don't raise here to allow the app to attempt starting anyway, 
+            # Not raising here to allow the app to attempt starting anyway, 
             # as Supabase might already be set up manually.
         finally:
             if conn:

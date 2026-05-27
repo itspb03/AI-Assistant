@@ -6,31 +6,12 @@ from typing import Any
 
 from app.config import get_settings
 
-# Memory is stored as structured JSON files per project.
-# One file per category keeps reads fast and writes atomic.
+
 CATEGORIES = ["context", "decisions", "entities", "constraints"]
 
 
 class MemoryAdapter:
-    """
-    Project-scoped file-based memory store.
-
-    Directory layout:
-        memory_store/
-          {project_id}/
-            context.json      ← background facts
-            decisions.json    ← choices confirmed by user/Claude
-            entities.json     ← named things: people, tools, platforms
-            constraints.json  ← hard limits
-
-    Each file is a dict keyed by `key` slug:
-        {
-          "target_platform": {
-            "summary": "The app targets iOS first.",
-            "detail": { "platforms": ["ios"] }
-          }
-        }
-    """
+    
 
     def __init__(self):
         self.base_path = Path(get_settings().memory_store_path)
@@ -41,14 +22,13 @@ class MemoryAdapter:
         return path
 
     def _file(self, project_id: UUID, category: str) -> Path:
-        # Normalize: "decision" → "decisions"
         filename = category if category.endswith("s") else f"{category}s"
         return self._project_dir(project_id) / f"{filename}.json"
 
     async def read(self, project_id: UUID) -> dict[str, Any]:
         """
         Returns the full memory snapshot for a project.
-        Used to build Claude's system prompt context.
+        Used to build the LLM's system prompt context.
         """
         result = {}
         for category in CATEGORIES:
@@ -74,17 +54,15 @@ class MemoryAdapter:
         """
         path = self._file(project_id, category)
 
-        # Read current state
+        
         if path.exists():
             content = await asyncio.to_thread(path.read_text, encoding="utf-8")
             data = json.loads(content)
         else:
             data = {}
 
-        # Upsert
         data[key] = {"summary": summary, "detail": detail}
 
-        # Write back atomically via temp file
         tmp = path.with_suffix(".tmp")
         await asyncio.to_thread(
             tmp.write_text, json.dumps(data, indent=2), encoding="utf-8"
@@ -102,7 +80,7 @@ class MemoryAdapter:
     def format_for_prompt(self, memory: dict[str, Any]) -> str:
         """
         Converts memory dict into a compact string for injection
-        into Claude's system prompt.
+        into the LLM's system prompt.
         """
         lines = ["## Project Memory\n"]
         for category, entries in memory.items():

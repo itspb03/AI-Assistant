@@ -19,13 +19,9 @@ def _configure_gemini() -> None:
 class GeminiImageAnalyzer:
     """
     Uses Gemini Vision to analyze an image URL.
-    Fetches the image bytes, resizes to max 1024px (Change 3), encodes to
+    Fetches the image bytes, resizes to max 1024px, encodes to
     base64, and sends to Gemini.
 
-    Changes applied:
-      3 — Resize to max 1024px with Pillow before encoding (reduces tile count).
-      4 — Short-circuits immediately when MOCK_AI=true.
-      5 — Passes gemini_max_tokens from config to generation_config.
 
     Assumption: image URLs are publicly accessible.
     For private/mock URLs, a fallback description is returned.
@@ -37,13 +33,13 @@ class GeminiImageAnalyzer:
         "and how it might relate to a design or product project. "
         "Be specific and useful. Keep the response under 300 words."
     )
-    MAX_IMAGE_PX = 1024   # Change 3: longest side cap before sending to Gemini
+    MAX_IMAGE_PX = 1024   
 
     def __init__(self):
         _configure_gemini()
         settings = get_settings()
         self.model = genai.GenerativeModel(settings.gemini_model)
-        self.max_output_tokens = settings.gemini_max_tokens  # Change 5
+        self.max_output_tokens = settings.gemini_max_tokens  
 
     async def analyze(
         self, image_url: str, context: str | None = None
@@ -54,7 +50,7 @@ class GeminiImageAnalyzer:
         """
         settings = get_settings()
 
-        # Change 4: mock short-circuit
+        
         if settings.mock_ai:
             logger.debug("MOCK_AI=true — skipping Gemini analyze() call")
             return self._mock_analysis(image_url, context)
@@ -62,24 +58,22 @@ class GeminiImageAnalyzer:
         try:
             raw_bytes = await self._fetch_image(image_url)
         except Exception:
-            # Mock/local URLs won't be reachable — return a placeholder
+            
             return self._mock_analysis(image_url, context)
 
-        # Change 3: resize before encoding — reduces Gemini tile count
+        # resizing before encoding — reduces Gemini tile count
         image_data = self._resize_image(raw_bytes, max_px=self.MAX_IMAGE_PX)
 
         prompt = self.ANALYSIS_PROMPT
         if context:
             prompt += f"\n\nGeneration prompt used: '{context}'"
 
-        # Change 5: cap output tokens via generation_config
-        # Run blocking SDK call in a thread pool — avoids blocking the async event loop
         response = await asyncio.to_thread(
             self.model.generate_content,
             [
                 prompt,
                 {
-                    "mime_type": "image/jpeg",   # Change 3: JPEG after resize
+                    "mime_type": "image/jpeg",   
                     "data": image_data,
                 },
             ],
@@ -100,7 +94,7 @@ class GeminiImageAnalyzer:
         Saves as JPEG (smaller than PNG) at quality=85.
         Returns the compressed bytes. (Change 3)
         """
-        from PIL import Image  # lazy import — only needed when not mocked
+        from PIL import Image  
 
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         w, h = img.size

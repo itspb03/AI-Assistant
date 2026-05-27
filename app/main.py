@@ -33,18 +33,18 @@ async def lifespan(app: FastAPI):
     """
     settings = get_settings()
     logger.info(f"Starting AI Project Assistant — env={settings.app_env}")
-    logger.info(f"Claude chat  : {settings.claude_chat_model} (max {settings.claude_chat_max_tokens} tokens)")
-    logger.info(f"Claude agent : {settings.claude_agent_model} (max {settings.claude_agent_max_tokens} tokens)")
+    logger.info(f"Groq chat   : {settings.groq_chat_model} (max {settings.llm_max_tokens} tokens)")
+    logger.info(f"Groq agent  : {settings.groq_agent_model} (max {settings.llm_max_tokens} tokens)")
     logger.info(f"Gemini model : {settings.gemini_model} (max {settings.gemini_max_tokens} tokens)")
     logger.info(f"Image provider: {settings.image_provider}")
     logger.info(f"Memory store  : {settings.memory_store_path}")
     logger.info(f"Mock AI       : {settings.mock_ai}")
 
-    # NEW: Automated migrations
+    # For  Automated migrations
     from app.db.migrator import migrator
     await migrator.run_migrations()
 
-    await get_supabase()   # ← eagerly init the async Supabase client singleton
+    await get_supabase()   
     logger.info("Supabase client ready.")
     yield
     logger.info("Shutting down.")
@@ -57,7 +57,7 @@ def create_app() -> FastAPI:
         title="AI Project Assistant",
         description=(
             "Backend-first AI assistant for managing projects "
-            "with Claude, Gemini, and persistent project memory."
+            "with Groq, Gemini, and persistent project memory."
         ),
         version="1.0.0",
         docs_url="/docs",
@@ -79,12 +79,13 @@ def create_app() -> FastAPI:
     app.include_router(briefs.router)
     app.include_router(conversations.router)
     app.include_router(chat.router)
+    from app.routers.chat import general_router
+    app.include_router(general_router)
     app.include_router(images.router)
     app.include_router(memory.router)
     app.include_router(agent_runs.router)
 
     # Serve static frontend files
-    # Note: Mounted at '/' with html=True so it picks up index.html
     app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
     @app.get("/health", tags=["Health"])

@@ -16,7 +16,7 @@ class MemoryToolHandlers:
             key=tool_input["key"],
             summary=tool_input["summary"],
             detail=tool_input.get("detail"),
-            source="claude",
+            source="llm",
         )
         return {
             "status": "saved",
