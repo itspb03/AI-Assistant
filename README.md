@@ -1,7 +1,6 @@
 # AI Project Assistant
 
-A robust backend-first AI assistant designed to manage projects using Claude (for reasoning/chat), Gemini (for vision), and a persistent dual-layer memory system.
-
+A chat-first, multi-LLM manager powering real-time project brainstorming and memory structuring. Utilizes Groq's Llama models for complex reasoning loops, Google Gemini for vision capabilities, and a Postgres/local-file hybrid memory to retain project context across sessions.
 ---
 
 ##  Quick Start
