@@ -131,7 +131,7 @@ The **Organizer Agent** is a "single-pass" specialist.
 
 ---
 
-## 📬 Sample API Interaction
+##  Sample API Interaction
 
 ### 1. Create a Project
 `POST /projects`
@@ -179,14 +179,14 @@ pytest tests/ -v
 
 ---
 
-## 🧠 Assumptions & Tradeoffs
+##  Assumptions & Tradeoffs
 - **Automated Schema Sync**: On every startup, the app executes all `sql/` files. This ensures your project structure is always "self-healing."
 - **Security-First Storage**: The system uses a **Private Bucket** for images. Access is restricted to the backend via the **Service Role Key**.
 - **No-Auth Pattern**: Designed as a project-internal tool; assumes auth is handled by a reverse proxy.
 
 ---
 
-## 🛠️ Limitations & Future Improvements
+##  Limitations & Future Improvements
 
 While this version is a fully functional AI assistant, the following features would be added for a production-ready rollout:
 
@@ -198,7 +198,7 @@ While this version is a fully functional AI assistant, the following features wo
 
 ---
 
-## 💰 Cost Optimizations
+##   Cost Optimizations
 - **Model Tiering**: Claude 3.5 Sonnet for reasoning, Haiku for organization.
 - **Prompt Caching**: Uses `cache_control` on large context blocks to reduce repetitive costs.
 - **Gemini Flash**: Efficient vision processing at scale.
@@ -206,9 +206,9 @@ While this version is a fully functional AI assistant, the following features wo
 
 ---
 
-## Technology Stack
+## Tech Stack
 - **Backend Framework**: FastAPI (Python 3.12+)
-- **Frontend**: Vanilla JavaScript (ES6+), HTML5, CSS3 (Glassmorphism)
+- **Frontend**: Vanilla JavaScript (ES6+), HTML5, CSS3
 - **Database**: Supabase (PostgreSQL)
 - **AI Models**: Anthropic Claude & Google Gemini Flash
 - **Memory**: Local File System + Database (Dual-Writer)
